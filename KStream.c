@@ -84,11 +84,10 @@ KStream *ks_create(const uint8_t keybytes[8])
     assert(ks != NULL);
 
     for (int i = 0; i < 8; i++)
-        ks->key[i] = keybytes[i]; // copy EXACT bytes from file
-
+    {
+        ks->key[i] = keybytes[i]; /* copy EXACT bytes from file */
+    }
     ks->keylen = 8;
-
-    // (rest of your KSA and priming code unchanged)
 
     /* Initialize S array to 0..255. */
     for (int i = 0; i < 256; i++)
@@ -96,20 +95,21 @@ KStream *ks_create(const uint8_t keybytes[8])
         ks->S[i] = (byte)i;
     }
 
+    /* Initialize state indices */
     ks->i = 0;
     ks->j = 0;
 
-    /* Key-scheduling algorithm (KSA) from pseudocode. */
-    int j = 0;
+    /* Key-scheduling algorithm (KSA) from pseudocode.
+       Use ks->j as the running j, not a local j. */
     for (int i = 0; i < 256; i++)
     {
-        j = (j + ks->S[i] + ks->key[i % ks->keylen]) & 0xFF;
-        swap_bytes(&ks->S[i], &ks->S[j]);
+        ks->j = (ks->j + ks->S[i] + ks->key[i % ks->keylen]) & 0xFF;
+        swap_bytes(&ks->S[i], &ks->S[ks->j]);
     }
 
-    /* Reset indices for PRGA (keystream generation). */
+    /* After KSA, start PRGA with i = 0; j is whatever KSA ended with. */
     ks->i = 0;
-    ks->j = 0;
+    /* ks->j is already the final KSA j */
 
     /* Prime the keystream: discard first 1024 bytes. */
     for (int n = 0; n < 1024; n++)
@@ -118,21 +118,6 @@ KStream *ks_create(const uint8_t keybytes[8])
     }
 
     return ks;
-}
-
-void ks_destroy(KStream *ks)
-{
-    if (ks == NULL)
-    {
-        return;
-    }
-
-    /* (Optional) You could scrub key/S contents before freeing, if desired. */
-    /* for (int i = 0; i < 8; i++) ks->key[i] = 0;
-       for (int i = 0; i < 256; i++) ks->S[i] = 0;
-    */
-
-    free(ks);
 }
 
 /**
