@@ -100,11 +100,16 @@ static void write_output_file(const char *filename,
         perror("output-file");
         exit(EXIT_FAILURE);
     }
+    if (len == 0)
+    {
+        fclose(f);
+        return;
+    }
 
-    size_t n = fwrite(data, 1, len, f);
+    size_t written = fwrite(data, 1, len, f);
     fclose(f);
 
-    if (n != len)
+    if (written != len)
     {
         fprintf(stderr, "error: failed to write output file\n");
         exit(EXIT_FAILURE);
@@ -118,15 +123,17 @@ static void write_stdout(const uint8_t *data, size_t len)
 {
     for (size_t i = 0; i < len; i++)
     {
-        if (data[i] < 128 && isprint(data[i]))
+        unsigned char c = data[i];
+
+        if (c < 128)
         {
-            /* printable ASCII */
-            putchar(data[i]);
+            /* ANY ASCII byte prints directly (including newline) */
+            putchar(c);
         }
         else
         {
-            /* print non-ASCII as hex */
-            printf("%02x", data[i]);
+            /* Non-ASCII prints as two-digit hex */
+            printf("%02x", c);
         }
     }
 }
