@@ -120,6 +120,16 @@ KStream *ks_create(const uint8_t keybytes[8])
     return ks;
 }
 
+void ks_destroy(KStream *ks)
+{
+    if (ks == NULL)
+    {
+        return;
+    }
+
+    free(ks);
+}
+
 /**
  * @brief Translate bytes using the keystream.
  *
