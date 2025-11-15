@@ -18,11 +18,9 @@
 /* ---------------------------------------------------------
  * Print usage message to stderr
  * --------------------------------------------------------- */
-static void usage(const char *prog)
+static void usage(void)
 {
-    fprintf(stderr,
-            "usage: %s key-file in-file [ out-file | - ]\n",
-            prog);
+    fprintf(stderr, "usage: mcrypt key-file in-file [ out-file | - ]\n");
 }
 
 /* ---------------------------------------------------------
@@ -140,7 +138,7 @@ int main(int argc, char **argv)
 {
     if (argc != 4)
     {
-        usage(argv[0]);
+        usage();
         return EXIT_FAILURE;
     }
 
