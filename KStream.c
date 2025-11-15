@@ -151,21 +151,9 @@ void ks_translate(KStream *ks, const uint8_t *in, uint8_t *out, size_t num)
     assert(in != NULL);
     assert(out != NULL);
 
-    /* TODO #1:
-     * Implement the loop described in the assignment pseudocode:
-     *
-     * for index from [0 to num-1]
-     *     out[index] = in[index] XOR next_byte(kstream)
-     *
-     * In C, use size_t for the loop index and ks_next_byte(ks)
-     * to get the keystream byte.
-     */
-
-    /* Example outline (you fill in the body):
-     *
-     * for (size_t i = 0; i < num; i++) {
-     *     byte k = ks_next_byte(ks);
-     *     out[i] = in[i] ^ k;
-     * }
-     */
+    for (size_t i = 0; i < num; i++)
+    {
+        byte k = ks_next_byte(ks);
+        out[i] = in[i] ^ k;
+    }
 }
