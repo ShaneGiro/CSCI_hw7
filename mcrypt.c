@@ -26,7 +26,7 @@ static void usage(void)
 /* ---------------------------------------------------------
  * Read 8-byte key from key file as uint64_t
  * --------------------------------------------------------- */
-static uint64_t read_key(const char *keyfile)
+static void read_key(const char *keyfile, uint8_t keybytes[8])
 {
     FILE *kf = fopen(keyfile, "rb");
     if (!kf)
@@ -35,8 +35,7 @@ static uint64_t read_key(const char *keyfile)
         exit(EXIT_FAILURE);
     }
 
-    uint64_t key = 0;
-    size_t n = fread(&key, 1, 8, kf);
+    size_t n = fread(keybytes, 1, 8, kf);
     fclose(kf);
 
     if (n != 8)
@@ -44,8 +43,6 @@ static uint64_t read_key(const char *keyfile)
         fprintf(stderr, "error: key file must contain 8 bytes\n");
         exit(EXIT_FAILURE);
     }
-
-    return key;
 }
 
 /* ---------------------------------------------------------
@@ -156,7 +153,8 @@ int main(int argc, char **argv)
     /* -----------------------------------------------------
      * Step 1: Read key
      * ----------------------------------------------------- */
-    uint64_t key64 = read_key(keyfile);
+    uint8_t keybytes[8];
+    read_key(keyfile, keybytes);
 
     /* -----------------------------------------------------
      * Step 2: Read input file
@@ -171,7 +169,7 @@ int main(int argc, char **argv)
     /* -----------------------------------------------------
      * Step 3: Create keystream
      * ----------------------------------------------------- */
-    KStream *ks = ks_create(key64);
+    KStream *ks = ks_create(keybytes);
 
     /* -----------------------------------------------------
      * Step 4: Translate

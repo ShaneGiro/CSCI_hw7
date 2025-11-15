@@ -78,17 +78,17 @@ static byte ks_next_byte(KStream *ks)
 /* Public interface implementations                                          */
 /* ------------------------------------------------------------------------- */
 
-KStream *ks_create(uint64_t key64)
+KStream *ks_create(const uint8_t keybytes[8])
 {
-    KStream *ks = (KStream *)malloc(sizeof(KStream));
+    KStream *ks = malloc(sizeof(KStream));
     assert(ks != NULL);
 
-    /* Convert 64-bit key into 8 bytes (little-endian style). */
-    for (int k = 0; k < 8; k++)
-    {
-        ks->key[k] = (byte)((key64 >> (8 * k)) & 0xFFu);
-    }
+    for (int i = 0; i < 8; i++)
+        ks->key[i] = keybytes[i]; // copy EXACT bytes from file
+
     ks->keylen = 8;
+
+    // (rest of your KSA and priming code unchanged)
 
     /* Initialize S array to 0..255. */
     for (int i = 0; i < 256; i++)
