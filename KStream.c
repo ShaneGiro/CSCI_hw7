@@ -14,21 +14,25 @@
 #include <stdint.h>
 #include <assert.h>
 
-/* ------------------------------------------------------------------------- */
-/* Internal types and helpers                                                */
-/* ------------------------------------------------------------------------- */
+/**
+ * @brief Internal types and helpers for the keystream implementation.
+ */
 
-/* Unsigned 8-bit byte type, per assignment suggestion. */
+/**
+ * @brief Unsigned 8-bit byte type, per assignment suggestion.
+ */
 typedef uint8_t byte;
 
-/* Opaque struct definition (visible only in this file). */
+/**
+ * @brief Opaque struct definition (visible only in this file).
+ */
 struct KStream
 {
-    byte key[8]; /* 8-byte key, derived from uint64_t input */
-    int keylen;  /* length of key in bytes (always 8 here)   */
-    byte S[256]; /* state array                              */
-    int i;       /* first index                              */
-    int j;       /* second index                             */
+    byte key[8]; /**< 8-byte key, derived from uint64_t input. */
+    int keylen;  /**< Length of key in bytes (always 8 here). */
+    byte S[256]; /**< State array for the cipher. */
+    int i;       /**< First permutation index. */
+    int j;       /**< Second permutation index. */
 };
 
 /**
@@ -74,10 +78,13 @@ static byte ks_next_byte(KStream *ks)
     return ks->S[idx];
 }
 
-/* ------------------------------------------------------------------------- */
-/* Public interface implementations                                          */
-/* ------------------------------------------------------------------------- */
-
+/**
+ * @brief Create and initialize a KStream instance from the provided key.
+ *
+ * @param keybytes  Eight-byte array containing the binary key data.
+ *
+ * @return Pointer to the initialized KStream structure.
+ */
 KStream *ks_create(const uint8_t keybytes[8])
 {
     KStream *ks = malloc(sizeof(KStream));
@@ -85,33 +92,25 @@ KStream *ks_create(const uint8_t keybytes[8])
 
     for (int i = 0; i < 8; i++)
     {
-        ks->key[i] = keybytes[i]; /* copy EXACT bytes from file */
+        ks->key[i] = keybytes[i];
     }
     ks->keylen = 8;
 
-    /* Initialize S array to 0..255. */
     for (int i = 0; i < 256; i++)
     {
         ks->S[i] = (byte)i;
     }
 
-    /* Initialize state indices */
     ks->i = 0;
     ks->j = 0;
 
-    /* Key-scheduling algorithm (KSA) from pseudocode.
-       Use ks->j as the running j, not a local j. */
     for (int i = 0; i < 256; i++)
     {
         ks->j = (ks->j + ks->S[i] + ks->key[i % ks->keylen]) & 0xFF;
         swap_bytes(&ks->S[i], &ks->S[ks->j]);
     }
 
-    /* After KSA, start PRGA with i = 0; j is whatever KSA ended with. */
     ks->i = 0;
-    /* ks->j is already the final KSA j */
-
-    /* Prime the keystream: discard first 1024 bytes. */
     for (int n = 0; n < 1024; n++)
     {
         (void)ks_next_byte(ks);
@@ -120,6 +119,11 @@ KStream *ks_create(const uint8_t keybytes[8])
     return ks;
 }
 
+/**
+ * @brief Destroy a KStream instance and release its memory.
+ *
+ * @param ks  Instance to destroy (may be NULL).
+ */
 void ks_destroy(KStream *ks)
 {
     if (ks == NULL)
@@ -133,8 +137,13 @@ void ks_destroy(KStream *ks)
 /**
  * @brief Translate bytes using the keystream.
  *
- * Uses XOR with successive keystream bytes to turn plaintext -> ciphertext
- * or ciphertext -> plaintext (same operation).
+ * Uses XOR with successive keystream bytes to turn plaintext into ciphertext
+ * or ciphertext back into plaintext.
+ *
+ * @param ks   Initialized KStream instance.
+ * @param in   Input buffer containing plaintext or ciphertext data.
+ * @param out  Output buffer that receives translated bytes.
+ * @param num  Number of bytes to translate.
  */
 void ks_translate(KStream *ks, const uint8_t *in, uint8_t *out, size_t num)
 {

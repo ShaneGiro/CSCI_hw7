@@ -15,17 +15,20 @@
 #include <assert.h>
 #include "KStream.h"
 
-/* ---------------------------------------------------------
- * Print usage message to stderr
- * --------------------------------------------------------- */
+/**
+ * @brief Print usage message to stderr.
+ */
 static void usage(void)
 {
     fprintf(stderr, "usage: mcrypt key-file in-file [ out-file | - ]\n");
 }
 
-/* ---------------------------------------------------------
- * Read 8-byte key from key file as uint64_t
- * --------------------------------------------------------- */
+/**
+ * @brief Read an 8-byte key from the provided key file.
+ *
+ * @param keyfile   Path to the binary key file.
+ * @param keybytes  Output buffer that receives the 8-byte key.
+ */
 static void read_key(const char *keyfile, uint8_t keybytes[8])
 {
     FILE *kf = fopen(keyfile, "rb");
@@ -45,9 +48,14 @@ static void read_key(const char *keyfile, uint8_t keybytes[8])
     }
 }
 
-/* ---------------------------------------------------------
- * Read entire input file into a buffer
- * --------------------------------------------------------- */
+/**
+ * @brief Read an entire file into a heap-allocated buffer.
+ *
+ * @param filename  Path to the file to read.
+ * @param len_out   Output parameter that receives the file length.
+ *
+ * @return Pointer to a buffer containing the file contents.
+ */
 static uint8_t *read_input(const char *filename, size_t *len_out)
 {
     FILE *f = fopen(filename, "rb");
@@ -57,7 +65,6 @@ static uint8_t *read_input(const char *filename, size_t *len_out)
         exit(EXIT_FAILURE);
     }
 
-    /* determine file size */
     fseek(f, 0, SEEK_END);
     long size = ftell(f);
     rewind(f);
@@ -84,9 +91,13 @@ static uint8_t *read_input(const char *filename, size_t *len_out)
     return buf;
 }
 
-/* ---------------------------------------------------------
- * Write binary output to file
- * --------------------------------------------------------- */
+/**
+ * @brief Write binary output to a file.
+ *
+ * @param filename  Output file path.
+ * @param data      Buffer containing the data to write.
+ * @param len       Number of bytes to write.
+ */
 static void write_output_file(const char *filename,
                               const uint8_t *data,
                               size_t len)
@@ -113,9 +124,12 @@ static void write_output_file(const char *filename,
     }
 }
 
-/* ---------------------------------------------------------
- * Write to stdout using ASCII or hex rules (assignment spec)
- * --------------------------------------------------------- */
+/**
+ * @brief Write translated bytes to stdout using ASCII/hex rules.
+ *
+ * @param data  Buffer containing the bytes to print.
+ * @param len   Number of bytes in the buffer.
+ */
 static void write_stdout(const uint8_t *data, size_t len)
 {
     for (size_t i = 0; i < len; i++)
@@ -124,20 +138,23 @@ static void write_stdout(const uint8_t *data, size_t len)
 
         if (c < 128)
         {
-            /* ANY ASCII byte prints directly (including newline) */
             putchar(c);
         }
         else
         {
-            /* Non-ASCII prints as two-digit hex */
             printf("%02x", c);
         }
     }
 }
 
-/* ---------------------------------------------------------
- * MAIN
- * --------------------------------------------------------- */
+/**
+ * @brief Program entry point for the mcrypt driver.
+ *
+ * @param argc  Argument count.
+ * @param argv  Argument vector describing key/input/output paths.
+ *
+ * @return EXIT_SUCCESS on success; EXIT_FAILURE on invalid usage.
+ */
 int main(int argc, char **argv)
 {
     if (argc != 4)
@@ -150,49 +167,28 @@ int main(int argc, char **argv)
     const char *infile = argv[2];
     const char *outfile = argv[3];
 
-    /* -----------------------------------------------------
-     * Step 1: Read key
-     * ----------------------------------------------------- */
     uint8_t keybytes[8];
     read_key(keyfile, keybytes);
 
-    /* -----------------------------------------------------
-     * Step 2: Read input file
-     * ----------------------------------------------------- */
     size_t in_len = 0;
     uint8_t *inbuf = read_input(infile, &in_len);
 
-    /* Allocate output buffer (same size) */
     uint8_t *outbuf = malloc(in_len);
     assert(outbuf != NULL);
 
-    /* -----------------------------------------------------
-     * Step 3: Create keystream
-     * ----------------------------------------------------- */
     KStream *ks = ks_create(keybytes);
 
-    /* -----------------------------------------------------
-     * Step 4: Translate
-     * ----------------------------------------------------- */
     ks_translate(ks, inbuf, outbuf, in_len);
 
-    /* -----------------------------------------------------
-     * Step 5: Deliver output
-     * ----------------------------------------------------- */
     if (outfile[0] == '-' && outfile[1] == '\0')
     {
-        /* stdout mode */
         write_stdout(outbuf, in_len);
     }
     else
     {
-        /* binary file mode */
         write_output_file(outfile, outbuf, in_len);
     }
 
-    /* -----------------------------------------------------
-     * Step 6: Cleanup
-     * ----------------------------------------------------- */
     ks_destroy(ks);
     free(inbuf);
     free(outbuf);
